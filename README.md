@@ -1,5 +1,7 @@
 # GoodSprout
 
+Your new plant companion.
+
 ## Getting Started
 1. Download the project.
 2. Download Xcode. (We need Xcode to use the iphone simulator) --> appstore
