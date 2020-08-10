@@ -1,0 +1,39 @@
+import 'package:meta/meta.dart';
+
+class Plant {
+  @required
+  int id;
+  @required
+  String plantName;
+  @required
+  String plantType;
+  @required
+  int wateringFrequency;
+
+  bool isWatered;
+
+  Plant({
+    this.id,
+    this.plantName,
+    this.plantType,
+    this.wateringFrequency,
+    this.isWatered = false,
+  });
+
+  Plant.fromDb(Map<String, dynamic> map)
+      : id = map['id'],
+        plantName = map['plant_name'],
+        plantType = map['plant_type'],
+        wateringFrequency = map['watering_frequency'],
+        isWatered = map['is_watered'] == 1;
+
+  Map<String, dynamic> toMapForDb() {
+    var map = Map<String, dynamic>();
+    map['id'] = id;
+    map['plant_name'] = plantName;
+    map['plant_type'] = plantType;
+    map['watering_frequency'] = wateringFrequency;
+    map['is_watered'] = isWatered ? 1 : 0;
+    return map;
+  }
+}

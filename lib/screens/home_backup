@@ -1,0 +1,792 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:sqlite_plant_app/constants.dart';
+import 'package:sqlite_plant_app/models/plant.dart';
+import 'package:sqlite_plant_app/services/database.dart';
+
+class HomeScreen extends StatefulWidget {
+  final Plant plant;
+
+  final int id;
+
+  const HomeScreen({
+    Key key,
+    this.plant,
+    this.id,
+  }) : super(key: key);
+
+  @override
+  HomeScreenState createState() => HomeScreenState(plant);
+}
+
+class HomeScreenState extends State<HomeScreen> {
+  HomeScreenState(this.plant);
+
+  // database setup
+  final db = PlantDatabase();
+  List<Plant> plants = [];
+  Plant plant;
+
+  // form values
+  final _formKey = GlobalKey<FormState>();
+  final List<String> plantTypes = ['ornamental plant', 'corp', 'tree'];
+  String _plantName;
+  String _plantType;
+  int _wateringFrequency;
+
+  @override
+  void initState() {
+    super.initState();
+    setupList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      drawer: _buildDrawer(),
+      appBar: AppBar(
+        iconTheme: new IconThemeData(color: darkGreenColor),
+        backgroundColor: lightGreenColor,
+        elevation: 1.0,
+        centerTitle: true,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Center(
+              child: SvgPicture.asset(
+                'assets/images/logo.svg',
+                allowDrawingOutsideViewBox: true,
+                alignment: Alignment.topCenter,
+                height: 55,
+              ),
+            ),
+          ],
+        ),
+      ),
+      body: _buildBody(plants),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(right: 10, bottom: 20),
+        child: new FloatingActionButton(
+          backgroundColor: lightGreenColor,
+          elevation: 10,
+          onPressed: () {
+            showModalBottomSheet(
+              isDismissible: true,
+              context: context,
+              builder: (_) => _buildAddPlantSheet(),
+            );
+          },
+          tooltip: 'Add plant',
+          child: new Icon(
+            Icons.add,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(List<Plant> plantsList) {
+    if (plantsList.length > 0) {
+      return Container(
+        child: ListView.builder(
+          itemCount: plantsList.length,
+          itemBuilder: (BuildContext context, int index) {
+            return Dismissible(
+              key: UniqueKey(),
+              direction: DismissDirection.endToStart,
+              onDismissed: (_) {
+                showDialog(
+                  barrierDismissible: false,
+                  context: context,
+                  builder: (_) {
+                    return AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      title: Text('Are you sure?'),
+                      actions: <Widget>[
+                        FlatButton(
+                          child: Text(
+                            'CANCEL',
+                            style: TextStyle(
+                              fontSize: 16,
+                            ),
+                          ),
+                          onPressed: () {
+                            setupList();
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                        FlatButton(
+                          child: Text(
+                            'DELETE',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 16,
+                            ),
+                          ),
+                          onPressed: () {
+                            onDelete(plantsList[index].id);
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+              background: Container(
+                padding: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    Text(
+                      'DELETE',
+                      style: TextStyle(
+                        color: Theme.of(context).errorColor,
+                        fontSize: 16,
+                      ),
+                    ),
+                    SizedBox(width: 5),
+                    Icon(
+                      Icons.delete,
+                      color: Theme.of(context).errorColor,
+                      size: 28,
+                    ),
+                  ],
+                ),
+              ),
+              child: ListTile(
+                title: Text(
+                  plantsList[index].plantName,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: darkGreenColor,
+                  ),
+                ),
+                subtitle: Text(
+                  '${plantsList[index].plantType}, ${plantsList[index].wateringFrequency}x a week',
+                  style: TextStyle(
+                    fontStyle: FontStyle.italic,
+                    fontSize: 14,
+                    color: Colors.black,
+                  ),
+                ),
+                onTap: () {
+                  showModalBottomSheet(
+                    isDismissible: true,
+                    context: context,
+                    builder: (_) {
+                      return _buildEditPlantSheet(
+                        plantsList[index].id,
+                        plantsList[index].plantName,
+                        plantsList[index].plantType,
+                        plantsList[index].wateringFrequency,
+                        plantsList[index].isWatered,
+                      );
+                    },
+                  );
+                },
+                trailing: Switch(
+                  activeColor: darkGreenColor,
+                  value: plantsList[index].isWatered == false ? false : true,
+                  onChanged: (bool newValue) {
+                    setState(() {
+                      plantsList[index].isWatered = newValue;
+                    });
+                    print(newValue);
+                  },
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    } else if (plantsList.length == 0) {
+      return Center(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              Container(
+                alignment: Alignment.center,
+                height: 500,
+                child:
+                    Image.asset('assets/images/waiting.png', fit: BoxFit.cover),
+              ),
+              SizedBox(
+                height: 30,
+              ),
+              Text(
+                'No plants added yet...',
+                style: TextStyle(
+                  color: darkGreenColor,
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      return Center(
+        child: CircularProgressIndicator(
+          backgroundColor: darkGreenColor,
+        ),
+      );
+    }
+  }
+
+  Widget _buildAddPlantSheet() {
+    return SingleChildScrollView(
+      controller: ScrollController(),
+      child: Container(
+        height: 600,
+        color: lightGreenColor,
+        padding: EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'Plant name',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: Colors.white,
+                ),
+              ),
+              Theme(
+                data: ThemeData(),
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: darkGreenColor,
+                        width: 1.5,
+                      ),
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.white,
+                        width: 1.5,
+                      ),
+                    ),
+                    hintText: 'Name your plant',
+                  ),
+                  validator: (value) {
+                    if (value.isEmpty) {
+                      return 'Please enter a plant name';
+                    }
+                    return null;
+                  },
+                  onChanged: (String value) {
+                    setState(
+                      () {
+                        _plantName = value;
+                      },
+                    );
+                  },
+                ),
+              ),
+              SizedBox(
+                height: 10,
+              ),
+              Text(
+                'Plant type',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: Colors.white,
+                ),
+              ),
+              DropdownButtonFormField(
+                validator: (value) {
+                  if (value == null) {
+                    return 'Please choose a plant type';
+                  } else {
+                    return null;
+                  }
+                },
+                isExpanded: false,
+                icon: Icon(
+                  Icons.arrow_drop_down,
+                  color: darkGreenColor,
+                ),
+                decoration: InputDecoration(
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: darkGreenColor,
+                      width: 1.5,
+                    ),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Colors.white,
+                      width: 1.5,
+                    ),
+                  ),
+                  hintText: 'Select plant type',
+                  fillColor: Colors.white,
+                ),
+                items: plantTypes.map((plantType) {
+                  return DropdownMenuItem(
+                    value: plantType,
+                    child: Container(
+                      child: Text('$plantType'),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(
+                    () {
+                      _plantType = value;
+                    },
+                  );
+                },
+              ),
+              SizedBox(
+                height: 10,
+              ),
+              Row(
+                children: <Widget>[
+                  SizedBox(
+                    width: 150,
+                    child: Theme(
+                      data: ThemeData(),
+                      child: TextFormField(
+                        decoration: InputDecoration(
+                          enabledBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(
+                              color: darkGreenColor,
+                              width: 1.5,
+                            ),
+                          ),
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Colors.white,
+                              width: 1.5,
+                            ),
+                          ),
+                          hintText: 'Enter a number',
+                        ),
+                        validator: (value) {
+                          if (value.isEmpty) {
+                            return 'Enter a valid number';
+                          } else if (int.parse(value) > 7) {
+                            return 'Enter a smaller number';
+                          }
+                          return null;
+                        },
+                        onChanged: (String value) {
+                          setState(
+                            () {
+                              _wateringFrequency = int.parse(value);
+                            },
+                          );
+                        },
+                        keyboardType: TextInputType.number,
+                        inputFormatters: <TextInputFormatter>[
+                          LengthLimitingTextInputFormatter(1),
+                          WhitelistingTextInputFormatter.digitsOnly
+                        ], // Only numbers can be entered
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.all(10),
+                    child: SizedBox(
+                      width: 100,
+                      child: Text('x a week'),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(
+                height: 10,
+              ),
+              Container(
+                alignment: Alignment.bottomRight,
+                child: FlatButton(
+                  child: Text(
+                    'ADD PLANT',
+                    style: TextStyle(
+                        color: darkGreenColor,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () {
+                    addPlant(
+                      _plantName,
+                      _plantType,
+                      _wateringFrequency,
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditPlantSheet(int _id, String _plantName, String _plantType,
+      int _wateringFrequency, bool _isWatered) {
+    return SingleChildScrollView(
+      controller: ScrollController(),
+      child: Container(
+        height: 600,
+        color: lightGreenColor,
+        padding: EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'Plant name',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: Colors.white,
+                ),
+              ),
+              Theme(
+                data: ThemeData(),
+                child: TextFormField(
+                  initialValue: _plantName,
+                  decoration: InputDecoration(
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: darkGreenColor,
+                        width: 1.5,
+                      ),
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.white,
+                        width: 1.5,
+                      ),
+                    ),
+                    hintText: 'Name your plant',
+                  ),
+                  validator: (value) {
+                    if (value.isEmpty) {
+                      return 'Please enter a plant name';
+                    }
+                    return null;
+                  },
+                  onChanged: (String value) {
+                    setState(
+                      () {
+                        _plantName = value;
+                      },
+                    );
+                  },
+                ),
+              ),
+              SizedBox(
+                height: 10,
+              ),
+              Text(
+                'Plant type',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: Colors.white,
+                ),
+              ),
+              DropdownButtonFormField(
+                validator: (value) {
+                  if (value == null) {
+                    return 'Please choose a plant type';
+                  } else {
+                    return null;
+                  }
+                },
+                isExpanded: false,
+                icon: Icon(
+                  Icons.arrow_drop_down,
+                  color: darkGreenColor,
+                ),
+                value: _plantType,
+                decoration: InputDecoration(
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: darkGreenColor,
+                      width: 1.5,
+                    ),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Colors.white,
+                      width: 1.5,
+                    ),
+                  ),
+                  fillColor: Colors.white,
+                ),
+                items: plantTypes.map((plantType) {
+                  return DropdownMenuItem(
+                    value: plantType,
+                    child: Container(
+                      child: Text('$plantType'),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(
+                    () {
+                      _plantType = value;
+                    },
+                  );
+                },
+              ),
+              SizedBox(
+                height: 10,
+              ),
+              Row(
+                children: <Widget>[
+                  SizedBox(
+                    width: 150,
+                    child: Theme(
+                      data: ThemeData(),
+                      child: TextFormField(
+                        initialValue: _wateringFrequency.toString(),
+                        decoration: InputDecoration(
+                          enabledBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(
+                              color: darkGreenColor,
+                              width: 1.5,
+                            ),
+                          ),
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Colors.white,
+                              width: 1.5,
+                            ),
+                          ),
+                          hintText: 'Enter a number',
+                        ),
+                        validator: (value) {
+                          if (value.isEmpty) {
+                            return 'Enter a valid number';
+                          } else if (int.parse(value) > 7) {
+                            return 'Enter a smaller number';
+                          }
+                          return null;
+                        },
+                        onChanged: (String value) {
+                          setState(
+                            () {
+                              _wateringFrequency = int.parse(value);
+                            },
+                          );
+                        },
+                        keyboardType: TextInputType.number,
+                        inputFormatters: <TextInputFormatter>[
+                          LengthLimitingTextInputFormatter(1),
+                          WhitelistingTextInputFormatter.digitsOnly
+                        ], // Only numbers can be entered
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.all(10),
+                    child: SizedBox(
+                      width: 100,
+                      child: Text('x a week'),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(
+                height: 10,
+              ),
+              Container(
+                alignment: Alignment.bottomRight,
+                child: FlatButton(
+                  child: Text(
+                    'EDIT PLANT',
+                    style: TextStyle(
+                        color: darkGreenColor,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () {
+                    editPlant(
+                      _id,
+                      _plantName,
+                      _plantType,
+                      _wateringFrequency,
+                      _isWatered,
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(
+      child: Column(
+        children: <Widget>[
+          Container(
+            padding: EdgeInsets.all(20),
+            color: darkGreenColor,
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.only(top: 20),
+              child: Text(
+                'Settings',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 30,
+                    color: Colors.white),
+              ),
+            ),
+          ),
+          Container(
+            child: ListView(
+              shrinkWrap: true,
+              padding: EdgeInsets.all(26.0),
+              children: <Widget>[
+                Row(
+                  children: [
+                    Text(
+                      'My plants: ',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: darkGreenColor,
+                        fontSize: 20,
+                      ),
+                    ),
+                    Text(
+                      '${plants.length}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                        fontSize: 22,
+                      ),
+                    ),
+                  ],
+                ),
+                // SizedBox(
+                //   height: 10,
+                // ),
+                // FlatButton.icon(
+                //     onPressed: () {
+                //       db.cleanDb();
+                //     },
+                //     icon: Icon(Icons.delete_forever),
+                //     label: Text('Delete all my plants')),
+                // SizedBox(
+                //   height: 10,
+                // ),
+                // Row(
+                //   children: <Widget>[
+                //     Text(
+                //       'Watered: ',
+                //       style: TextStyle(
+                //         fontWeight: FontWeight.bold,
+                //         color: darkGreenColor,
+                //         fontSize: 20,
+                //       ),
+                //     ),
+                //     Text(
+                //       '',
+                //       style: TextStyle(
+                //         fontWeight: FontWeight.bold,
+                //         color: Colors.black,
+                //         fontSize: 22,
+                //       ),
+                //     ),
+                //   ],
+                // ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // returns an int that represents the day of the month
+  int getToday() {
+    DateTime today = DateTime.now();
+    print(today.day);
+    return today.day; // an integer
+  }
+
+  Future<void> addPlant(
+      String _plantName, String _plantType, int _wateringFrequency) async {
+    if (_formKey.currentState.validate()) {
+      _formKey.currentState.save();
+      print('name: $_plantName');
+      print('type: $_plantType');
+      print('num: $_wateringFrequency');
+      // print('is watered: ${plant.isWatered}');
+
+      await db.addPlant(
+        Plant(
+          plantName: _plantName,
+          plantType: _plantType,
+          wateringFrequency: _wateringFrequency,
+          isWatered: false,
+        ),
+      );
+      setupList();
+      Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> editPlant(int _id, String _plantName, String _plantType,
+      int _wateringFrequency, bool _isWatered) async {
+    if (_formKey.currentState.validate()) {
+      _formKey.currentState.save();
+      print('id: $_id');
+      print('name: $_plantName');
+      print('type: $_plantType');
+      print('num: $_wateringFrequency');
+      print('is watered: $_isWatered');
+
+      await db.updatePlant(
+        Plant(
+          id: _id,
+          plantName: _plantName,
+          plantType: _plantType,
+          wateringFrequency: _wateringFrequency,
+          isWatered: _isWatered,
+        ),
+      );
+      setupList();
+      Navigator.of(context).pop();
+    }
+  }
+
+  void onDelete(int id) async {
+    await db.removePlant(id);
+    db.fetchAll().then((plantDb) => plants = plantDb);
+    setState(() {});
+  }
+
+  void setupList() async {
+    var _plants = await db.fetchAll();
+
+    setState(() {
+      plants = _plants;
+    });
+  }
+}

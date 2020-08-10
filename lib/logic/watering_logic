@@ -1,0 +1,121 @@
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/material.dart';
+
+class Logic extends StatefulWidget {
+  @override
+  _LogicState createState() => _LogicState();
+}
+
+class _LogicState extends State<Logic> {
+  // constants for the watering logic
+  int streak = 0;
+  var lastDayWatered;
+  static var time = DateTime.now().toUtc();
+  var today = DateTime.utc(time.year, time.day, time.month);
+  Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+
+  bool _isWatered;
+  int _wateringFrequency;
+
+  // to store the streak
+
+// check when was the plant watered and the streak
+  void checkStatus() {
+    if (lastDayWatered == today) {
+      _isWatered = true;
+      print('lastDayWatered == today');
+    } else if (lastDayWatered != today) {
+      print('lastDayWatered != today');
+      if (streak == _wateringFrequency) {
+        _isWatered = true;
+        print('streak == wateringFrequency');
+      } else if (streak != _wateringFrequency) {
+        _isWatered = false;
+        print('lastDayWatered != null');
+      }
+    } else if (lastDayWatered == null) {
+      print('lastDayWatered == null');
+      if (streak == _wateringFrequency) {
+        _isWatered = true;
+        print('streak == wateringFrequency');
+      } else if (streak != _wateringFrequency) {
+        _isWatered = false;
+        print('lastDayWatered != null');
+      }
+    }
+  }
+
+  // intrement streak
+  void incrementStreak() {
+    setState(() {
+      streak++;
+    });
+    print('Streak incremented, streak: $streak.');
+  }
+
+  /// save the streak number using shared preferences
+  void saveStreak() async {
+    final SharedPreferences prefs = await _prefs;
+    prefs.setInt('streak', streak);
+    prefs.setInt('lastDayWatered', lastDayWatered);
+    print('Streak: $streak, lastDayWatered: $lastDayWatered');
+  }
+
+  /// update streak
+  void updateStreak() {
+    if (_isWatered == true) {
+      incrementStreak();
+      saveStreak();
+      setState(() {
+        lastDayWatered = today;
+      });
+      print('Streak updated.');
+    }
+  }
+
+  /// retrieve the streak number from shared preferences
+  void getStreak() async {
+    final SharedPreferences prefs = await _prefs;
+    setState(() {
+      streak = (prefs.getInt('streak') ?? 0);
+      lastDayWatered = (prefs.getInt('lastDayWatered') ?? null);
+    });
+  }
+
+  void alterPlant(bool value, int index) async {
+    int isNowWatered = value ? false : true;
+    setState(() {
+      plantsList[index].isWatered = isNowWatered;
+    });
+
+    await db.updateTask(new Plant(plantsList[index].name, isNowWatered));
+
+    updateStreak(); // check if streak should be incremented
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container();
+  }
+}
+
+// USE THIS TO COMPARE DATES -> LASTDAYWATERED = TODAY
+// static var time = DateTime.now().toUtc();
+// var d1 = DateTime.utc(
+//   time.year,
+//   time.day,
+//   time.month,
+// );
+// var d2 = DateTime.utc(
+//   2020,
+//   8,
+//   8,
+// ); //you can add today's date here
+
+// void compare() {
+//   if (d2.compareTo(d1) == 0) {
+//     print('the dates are the same');
+//   } else {
+//     print('the dates are not the same');
+//   }
+// }
