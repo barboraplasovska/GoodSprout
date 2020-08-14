@@ -1,0 +1,41 @@
+Future<Database> openDb() async {
+  if (db == null) {
+    db = await openDatabase(join(await getDatabasesPath(), 'skeema.db'),
+        onCreate: (database, version) {
+      // account
+      database.execute('''CREATE TABLE Account(
+          id INTEGER PRIMARY KEY, 
+          Name TEXT NOT NULL, 
+          CurrencyType TEXT NOT NULL,
+          Balance REAL NOT NULL, 
+          IsPrimary TEXT NULL)''');
+
+      // budgetItem
+      database.execute('''CREATE TABLE BudgetItem(
+          id INTEGER PRIMARY KEY, 
+          Name TEXT NOT NULL, 
+          Icon TEXT NOT NULL, 
+          Budget REAL NOT NULL, ' + 'IsPrimary TEXT NULL)''');
+
+      // TransactionType
+      database.execute('''CREATE TABLE TransactionType(
+          id INTEGER PRIMARY KEY, 
+          Type TEXT NOT NULL)''');
+
+      // Transaction
+      database.execute('''CREATE TABLE Transaction(
+          id INTEGER PRIMARY KEY, 
+        Account_id INTEGER NOT NULL, 
+        BudgetItem_id INTEGER NOT NULL, 
+            TransactionType_id INTEGER NOT NULL, 
+            Amount REAL NOT NULL, 
+            Date TEXT NOT NULL, 
+            Party TEXT NOT NULL, 
+            Note TEXT NULL, 
+            FOREIGN KEY(Account_id) REFERENCES Account(id),
+            FOREIGN KEY(BudgetItem_id) REFERENCES BudgetItem(id), 
+            FOREIGN KEY(TransactionType_id) REFERENCES TransactionType(id))''');
+    }, version: version);
+  }
+  return db;
+}

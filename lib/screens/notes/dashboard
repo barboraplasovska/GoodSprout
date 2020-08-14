@@ -1,0 +1,331 @@
+Widget _showDashboard() {
+      return Expanded(
+        flex: 1,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              shape: BoxShape.rectangle,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        flex: 1,
+                        child: Container(
+                          alignment: Alignment.topRight,
+                          child: Text(
+                            today,
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Container(
+                          alignment: Alignment.topLeft,
+                          child: Text(
+                            'Today',
+                            textAlign: TextAlign.start,
+                            style: TextStyle(
+                              color: darkGreenColor,
+                              fontSize: 30,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 1,
+                        child: dashboardHasData
+                            ? Padding(
+                                padding: const EdgeInsets.only(top: 5),
+                                child: Text(
+                                  'Plants to water today ..',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              )
+                            : Padding(
+                                padding: const EdgeInsets.only(top: 5),
+                                child: Text(
+                                  'No plants to water today ..',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                      ),
+                      Expanded(
+                        flex: 3,
+                        child: Scrollbar(
+                          isAlwaysShown: false,
+                          controller: _scrollControllerDashboard,
+                          child: ListView.builder(
+                            controller: _scrollControllerDashboard,
+                            itemCount: plantsList.length,
+                            itemBuilder: (BuildContext context, int index) {
+                              print('Building dashboard');
+                              print('DASHBOARD: $dashboardHasData');
+
+                              switch (weekday) {
+                                case 'Monday':
+                                  if (plantsList[index].monday == true) {
+                                    print(
+                                        'Its monday and ${plantsList[index].plantName} wants to be watered');
+                                    dashboardHasData = true;
+                                    print(
+                                        '${plantsList[index].plantName} is not watered yet');
+                                    print(
+                                        'DASHBOARD has data: $dashboardHasData');
+                                    return Row(
+                                      children: <Widget>[
+                                        Text(
+                                          '— ${plantsList[index].plantName}',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w100,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Container(
+                                            child: plantsList[index].isWatered
+                                                ? Icon(
+                                                    Icons.done,
+                                                    color: darkGreenColor,
+                                                    size: 20,
+                                                  )
+                                                : null),
+                                      ],
+                                    );
+                                  }
+                                  break;
+                                case 'Tuesday':
+                                  if (plantsList[index].tuesday == true) {
+                                    print(
+                                        'Its tuesday and ${plantsList[index].plantName} wants to be watered');
+                                    dashboardHasData = true;
+                                    print(
+                                        '${plantsList[index].plantName} is not watered yet');
+                                    print(
+                                        'DASHBOARD has data: $dashboardHasData');
+                                    return Row(
+                                      children: <Widget>[
+                                        Text(
+                                          '— ${plantsList[index].plantName}',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w100,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Container(
+                                            child: plantsList[index].isWatered
+                                                ? Icon(
+                                                    Icons.done,
+                                                    color: darkGreenColor,
+                                                    size: 20,
+                                                  )
+                                                : null),
+                                      ],
+                                    );
+                                  }
+                                  break;
+                                case 'Wednesday':
+                                  if (plantsList[index].wednesday == true) {
+                                    print(
+                                        'Its wednesday and ${plantsList[index].plantName} wants to be watered');
+                                    dashboardHasData = true;
+                                    print(
+                                        '${plantsList[index].plantName} is not watered yet');
+                                    print(
+                                        'DASHBOARD has data: $dashboardHasData');
+                                    return Row(
+                                      children: <Widget>[
+                                        Text(
+                                          '— ${plantsList[index].plantName}',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w100,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Container(
+                                            child: plantsList[index].isWatered
+                                                ? Icon(
+                                                    Icons.done,
+                                                    color: darkGreenColor,
+                                                    size: 20,
+                                                  )
+                                                : null),
+                                      ],
+                                    );
+                                  }
+                                  break;
+                                case 'Thursday':
+                                  if (plantsList[index].thursday == true) {
+                                    print(
+                                        'Its thursday and ${plantsList[index].plantName} wants to be watered');
+                                    dashboardHasData = true;
+                                    print(
+                                        '${plantsList[index].plantName} is not watered yet');
+                                    print(
+                                        'DASHBOARD has data: $dashboardHasData');
+                                    return Row(
+                                      children: <Widget>[
+                                        Text(
+                                          '— ${plantsList[index].plantName}',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w100,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Container(
+                                            child: plantsList[index].isWatered
+                                                ? Icon(
+                                                    Icons.done,
+                                                    color: darkGreenColor,
+                                                    size: 20,
+                                                  )
+                                                : null),
+                                      ],
+                                    );
+                                  }
+                                  break;
+                                case 'Friday':
+                                  if (plantsList[index].friday == true) {
+                                    print(
+                                        'Its friday and ${plantsList[index].plantName} wants to be watered');
+                                    dashboardHasData = true;
+                                    print(
+                                        '${plantsList[index].plantName} is not watered yet');
+                                    print(
+                                        'DASHBOARD has data: $dashboardHasData');
+
+                                    return Row(
+                                      children: <Widget>[
+                                        Text(
+                                          '— ${plantsList[index].plantName}',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w100,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Container(
+                                            child: plantsList[index].isWatered
+                                                ? Icon(
+                                                    Icons.done,
+                                                    color: darkGreenColor,
+                                                    size: 20,
+                                                  )
+                                                : null),
+                                      ],
+                                    );
+                                  } else if (plantsList[index].friday ==
+                                      false) {
+                                    dashboardHasData = false;
+                                  }
+                                  break;
+                                case 'Saturday':
+                                  if (plantsList[index].saturday == true) {
+                                    print(
+                                        'Its saturday and ${plantsList[index].plantName} wants to be watered');
+                                    dashboardHasData = true;
+                                    print(
+                                        '${plantsList[index].plantName} is not watered yet');
+                                    print(
+                                        'DASHBOARD has data: $dashboardHasData');
+                                    return Row(
+                                      children: <Widget>[
+                                        Text(
+                                          '— ${plantsList[index].plantName}',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w100,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Container(
+                                            child: plantsList[index].isWatered
+                                                ? Icon(
+                                                    Icons.done,
+                                                    color: darkGreenColor,
+                                                    size: 20,
+                                                  )
+                                                : null),
+                                      ],
+                                    );
+                                  }
+                                  break;
+                                case 'Sunday':
+                                  if (plantsList[index].sunday == true) {
+                                    print(
+                                        'Its sunday and ${plantsList[index].plantName} wants to be watered');
+                                    dashboardHasData = true;
+                                    print(
+                                        '${plantsList[index].plantName} is not watered yet');
+                                    print(
+                                        'DASHBOARD has data: $dashboardHasData');
+                                    return Row(
+                                      children: <Widget>[
+                                        Text(
+                                          '— ${plantsList[index].plantName}',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w100,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Container(
+                                            child: plantsList[index].isWatered
+                                                ? Icon(
+                                                    Icons.done,
+                                                    color: darkGreenColor,
+                                                    size: 20,
+                                                  )
+                                                : null),
+                                      ],
+                                    );
+                                  }
+                                  break;
+                              }
+
+                              return Container();
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }

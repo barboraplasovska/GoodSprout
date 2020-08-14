@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
 import 'package:sqlite_plant_app/constants.dart';
 import 'package:sqlite_plant_app/models/plant.dart';
+import 'package:sqlite_plant_app/screens/add_plant_screen.dart';
+import 'package:sqlite_plant_app/screens/edit_plant_screen.dart';
 import 'package:sqlite_plant_app/services/database.dart';
 import 'package:sleek_circular_slider/sleek_circular_slider.dart';
 
@@ -26,33 +28,26 @@ class HomeScreenState extends State<HomeScreen> {
 
   // scrollbar
   final ScrollController _scrollController = ScrollController();
+  final ScrollController _scrollControllerDashboard = ScrollController();
+  bool dashboardHasData = false;
 
   // database setup
   final db = PlantDatabase();
   List<Plant> plants = [];
   Plant plant;
 
-  // form values
-  final _formKey = GlobalKey<FormState>();
-  final List<String> plantTypes = ['ornamental plant', 'corp', 'tree'];
-  String _plantName;
-  String _plantType;
-  int _wateringFrequency;
-  bool _isWatered;
-
   // constants for the watering logic
-  bool isEnabled = true;
-  bool goalDone = false;
   int streak = 0;
-  String lastDayWatered;
-  static var time = DateTime.now().toUtc();
-  String today =
-      DateTime.utc(time.year, time.day, time.month).toIso8601String();
+  String lastDayWatered = '';
+  static var time = DateTime.now();
+  String today = DateFormat('EEEE dd.MM.yyyy').format(time);
+  String weekday = DateFormat('EEEE').format(time);
 
   @override
   void initState() {
     super.initState();
     setupList();
+    print('Welcome, today is $today');
   }
 
   @override
@@ -90,10 +85,12 @@ class HomeScreenState extends State<HomeScreen> {
           backgroundColor: Colors.white,
           elevation: 10,
           onPressed: () {
-            showModalBottomSheet(
-              isDismissible: true,
-              context: context,
-              builder: (_) => _buildAddPlantSheet(),
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) {
+                  return AddPlantScreen();
+                },
+              ),
             );
           },
           tooltip: 'Add plant',
@@ -108,40 +105,44 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBody(List<Plant> plantsList) {
+    print(plantsList);
     // WATERING ALGORIMTH
 
     // reset streak -> only if there is a new week
-    void resetStreak() {
+    void resetStreak(int index) {
       setState(() {
-        streak = 0;
+        plantsList[index].streak = 0;
       });
     }
 
-// disable switch
-
-    void disableSwitch(int index) {
-      setState(() {
-        plantsList[index].isEnabled = false;
-      });
-    }
-
-// check if goal is done
-    void checkGoal(int index) {
-      print('${plantsList[index].plantName}: CHECKING GOAL ...');
-
-      if (plantsList[index].streak == plantsList[index].wateringFrequency) {
-        print('streak == wateringFrequency');
-        print('Disabling switch..');
-
-        plantsList[index].goalDone = true;
-        disableSwitch(index);
-      } else if (plantsList[index].streak !=
-          plantsList[index].wateringFrequency) {
-        plantsList[index].goalDone = false;
-        plantsList[index].isEnabled = true;
-        print('streak != wateringFrequency');
+    checkWeekday(int index) {
+      if (weekday == 'Monday') {
+        resetStreak(index);
+        print(
+            'It\'s monday, resetting streak. Streak of ${plantsList[index].plantName}: ${plantsList[index].streak}.');
+      } else {
+        print(
+            'It\'s $weekday today. Reseting streak NOT needed!Streak of ${plantsList[index].plantName}: ${plantsList[index].streak}.');
       }
     }
+
+// // check if goal is done
+//     void checkGoal(int index) {
+//       print('${plantsList[index].plantName}: CHECKING GOAL ...');
+
+//       if (plantsList[index].streak == plantsList[index].wateringFrequency) {
+//         print('streak == wateringFrequency');
+//         print('Disabling switch..');
+
+//         plantsList[index].goalDone = true;
+//         disableSwitch(index);
+//       } else if (plantsList[index].streak !=
+//           plantsList[index].wateringFrequency) {
+//         plantsList[index].goalDone = false;
+//         plantsList[index].isEnabled = true;
+//         print('streak != wateringFrequency');
+//       }
+//     }
 
 // check when was the plant watered and the streak
     void checkStatus(int index) {
@@ -188,169 +189,344 @@ class HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    // intrement streak
-    void incrementStreak(int index) {
-      setState(() {
-        plantsList[index].streak++;
-      });
-      print(
-          'Streak incremented ${plantsList[index].plantName}, streak: ${plantsList[index].streak}.');
-    }
-
-    // decrement streak
-
-    void decrementStreak(int index) {
-      setState(() {
-        plantsList[index].streak--;
-      });
-      print(
-          'Streak decremented ${plantsList[index].plantName}, streak: ${plantsList[index].streak}.');
-    }
-
-    /// update streak
-    void updateStreak(int index) {
-      if (plantsList[index].isWatered == true) {
-        incrementStreak(index);
-        // saveStreak(index);
-        setState(() {
-          plantsList[index].lastDayWatered = today;
-        });
-        print('Streak updated.');
-      } else if (plantsList[index].isWatered == false) {
-        print('_isWatered == false');
-        decrementStreak(index);
-      } else if (plantsList[index].isWatered == null) {
-        print('_isWatered == null');
-      }
-    }
-
-    void alterPlant(bool value, int index) async {
-      bool isNowWatered = value;
-      setState(() {
-        plantsList[index].isWatered = isNowWatered;
-      });
-
-      if (plantsList[index].isWatered == true) {
-        if (plantsList[index].lastDayWatered != today) {
-          updateStreak(index); // check if streak should be incremented
-          await db.updatePlant(
-            new Plant(
-              id: plantsList[index].id,
-              plantName: plantsList[index].plantName,
-              plantType: plantsList[index].plantType,
-              wateringFrequency: plantsList[index].wateringFrequency,
-              isWatered: isNowWatered,
-              streak: plantsList[index].streak,
-              lastDayWatered: plantsList[index].lastDayWatered,
+    Widget _showDashboard() {
+      return Expanded(
+        flex: 1,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              shape: BoxShape.rectangle,
             ),
-          );
-        } else if (plantsList[index].lastDayWatered == today) {
-          print('LastDayWatered is today! Cannot water anymore!');
-        } else {
-          print('unknown lastdaywatered');
-        }
-      } else if (plantsList[index].isWatered == false &&
-          plantsList[index].lastDayWatered == today) {
-        print('User switched from true back to false');
-
-        showDialog(
-            barrierDismissible: false,
-            context: context,
-            builder: (_) {
-              return AlertDialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        flex: 1,
+                        child: Container(
+                          alignment: Alignment.topRight,
+                          child: Text(
+                            today,
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Container(
+                          alignment: Alignment.topLeft,
+                          child: Text(
+                            'Today',
+                            textAlign: TextAlign.start,
+                            style: TextStyle(
+                              color: darkGreenColor,
+                              fontSize: 30,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                title: Text('Are you sure?'),
-                content:
-                    Text('You won\'t be able to water this plant again today.'),
-                actions: [
-                  FlatButton(
-                    child: Text(
-                      'CANCEL',
-                      style: TextStyle(
-                        fontSize: 16,
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 1,
+                        child: dashboardHasData
+                            ? Padding(
+                                padding: const EdgeInsets.only(top: 5),
+                                child: Text(
+                                  'Plants to water today ..',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              )
+                            : Padding(
+                                padding: const EdgeInsets.only(top: 5),
+                                child: Text(
+                                  'No plants to water today ..',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
                       ),
-                    ),
-                    onPressed: () async {
-                      setState(() {
-                        _isWatered = true;
-                        plantsList[index].isWatered = true;
-                      });
-                      print('User changed his mind, plant is watered');
-                      await db.updatePlant(
-                        new Plant(
-                          id: plantsList[index].id,
-                          plantName: plantsList[index].plantName,
-                          plantType: plantsList[index].plantType,
-                          wateringFrequency:
-                              plantsList[index].wateringFrequency,
-                          isWatered: _isWatered,
-                          streak: plantsList[index].streak,
-                          lastDayWatered: plantsList[index].lastDayWatered,
-                        ),
-                      );
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                  FlatButton(
-                    child: Text(
-                      'I AM SURE',
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 16,
-                      ),
-                    ),
-                    onPressed: () async {
-                      updateStreak(index);
+                      Expanded(
+                        flex: 3,
+                        child: Scrollbar(
+                          isAlwaysShown: false,
+                          controller: _scrollControllerDashboard,
+                          child: ListView.builder(
+                            controller: _scrollControllerDashboard,
+                            itemCount: plantsList.length,
+                            itemBuilder: (BuildContext context, int index) {
+                              print('Building dashboard');
+                              print('DASHBOARD: $dashboardHasData');
 
-                      await db.updatePlant(
-                        new Plant(
-                          id: plantsList[index].id,
-                          plantName: plantsList[index].plantName,
-                          plantType: plantsList[index].plantType,
-                          wateringFrequency:
-                              plantsList[index].wateringFrequency,
-                          isWatered: isNowWatered,
-                          streak: plantsList[index].streak,
-                          lastDayWatered: plantsList[index].lastDayWatered,
+                              switch (weekday) {
+                                case 'Monday':
+                                  if (plantsList[index].monday == true) {
+                                    print(
+                                        'Its monday and ${plantsList[index].plantName} wants to be watered');
+                                    dashboardHasData = true;
+                                    print(
+                                        '${plantsList[index].plantName} is not watered yet');
+                                    print(
+                                        'DASHBOARD has data: $dashboardHasData');
+                                    return Row(
+                                      children: <Widget>[
+                                        Text(
+                                          '— ${plantsList[index].plantName}',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w100,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Container(
+                                            child: plantsList[index].isWatered
+                                                ? Icon(
+                                                    Icons.done,
+                                                    color: darkGreenColor,
+                                                    size: 20,
+                                                  )
+                                                : null),
+                                      ],
+                                    );
+                                  }
+                                  break;
+                                case 'Tuesday':
+                                  if (plantsList[index].tuesday == true) {
+                                    print(
+                                        'Its tuesday and ${plantsList[index].plantName} wants to be watered');
+                                    dashboardHasData = true;
+                                    print(
+                                        '${plantsList[index].plantName} is not watered yet');
+                                    print(
+                                        'DASHBOARD has data: $dashboardHasData');
+                                    return Row(
+                                      children: <Widget>[
+                                        Text(
+                                          '— ${plantsList[index].plantName}',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w100,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Container(
+                                            child: plantsList[index].isWatered
+                                                ? Icon(
+                                                    Icons.done,
+                                                    color: darkGreenColor,
+                                                    size: 20,
+                                                  )
+                                                : null),
+                                      ],
+                                    );
+                                  }
+                                  break;
+                                case 'Wednesday':
+                                  if (plantsList[index].wednesday == true) {
+                                    print(
+                                        'Its wednesday and ${plantsList[index].plantName} wants to be watered');
+                                    dashboardHasData = true;
+                                    print(
+                                        '${plantsList[index].plantName} is not watered yet');
+                                    print(
+                                        'DASHBOARD has data: $dashboardHasData');
+                                    return Row(
+                                      children: <Widget>[
+                                        Text(
+                                          '— ${plantsList[index].plantName}',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w100,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Container(
+                                            child: plantsList[index].isWatered
+                                                ? Icon(
+                                                    Icons.done,
+                                                    color: darkGreenColor,
+                                                    size: 20,
+                                                  )
+                                                : null),
+                                      ],
+                                    );
+                                  }
+                                  break;
+                                case 'Thursday':
+                                  if (plantsList[index].thursday == true) {
+                                    print(
+                                        'Its thursday and ${plantsList[index].plantName} wants to be watered');
+                                    dashboardHasData = true;
+                                    print(
+                                        '${plantsList[index].plantName} is not watered yet');
+                                    print(
+                                        'DASHBOARD has data: $dashboardHasData');
+                                    return Row(
+                                      children: <Widget>[
+                                        Text(
+                                          '— ${plantsList[index].plantName}',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w100,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Container(
+                                            child: plantsList[index].isWatered
+                                                ? Icon(
+                                                    Icons.done,
+                                                    color: darkGreenColor,
+                                                    size: 20,
+                                                  )
+                                                : null),
+                                      ],
+                                    );
+                                  }
+                                  break;
+                                case 'Friday':
+                                  if (plantsList[index].friday == true) {
+                                    print(
+                                        'Its friday and ${plantsList[index].plantName} wants to be watered');
+                                    dashboardHasData = true;
+                                    print(
+                                        '${plantsList[index].plantName} is not watered yet');
+                                    print(
+                                        'DASHBOARD has data: $dashboardHasData');
+
+                                    return Row(
+                                      children: <Widget>[
+                                        Text(
+                                          '— ${plantsList[index].plantName}',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w100,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Container(
+                                            child: plantsList[index].isWatered
+                                                ? Icon(
+                                                    Icons.done,
+                                                    color: darkGreenColor,
+                                                    size: 20,
+                                                  )
+                                                : null),
+                                      ],
+                                    );
+                                  } else if (plantsList[index].friday ==
+                                      false) {
+                                    dashboardHasData = false;
+                                  }
+                                  break;
+                                case 'Saturday':
+                                  if (plantsList[index].saturday == true) {
+                                    print(
+                                        'Its saturday and ${plantsList[index].plantName} wants to be watered');
+                                    dashboardHasData = true;
+                                    print(
+                                        '${plantsList[index].plantName} is not watered yet');
+                                    print(
+                                        'DASHBOARD has data: $dashboardHasData');
+                                    return Row(
+                                      children: <Widget>[
+                                        Text(
+                                          '— ${plantsList[index].plantName}',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w100,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Container(
+                                            child: plantsList[index].isWatered
+                                                ? Icon(
+                                                    Icons.done,
+                                                    color: darkGreenColor,
+                                                    size: 20,
+                                                  )
+                                                : null),
+                                      ],
+                                    );
+                                  }
+                                  break;
+                                case 'Sunday':
+                                  if (plantsList[index].sunday == true) {
+                                    print(
+                                        'Its sunday and ${plantsList[index].plantName} wants to be watered');
+                                    dashboardHasData = true;
+                                    print(
+                                        '${plantsList[index].plantName} is not watered yet');
+                                    print(
+                                        'DASHBOARD has data: $dashboardHasData');
+                                    return Row(
+                                      children: <Widget>[
+                                        Text(
+                                          '— ${plantsList[index].plantName}',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w100,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Container(
+                                            child: plantsList[index].isWatered
+                                                ? Icon(
+                                                    Icons.done,
+                                                    color: darkGreenColor,
+                                                    size: 20,
+                                                  )
+                                                : null),
+                                      ],
+                                    );
+                                  }
+                                  break;
+                              }
+
+                              return Container();
+                            },
+                          ),
                         ),
-                      );
-                      setState(() {
-                        plantsList[index].isEnabled = false;
-                      });
-                      Navigator.of(context).pop();
-                      print('User decided not to water the plant today');
-                    },
+                      ),
+                    ],
                   ),
-                ],
-              );
-            });
-      }
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     if (plantsList.length > 0) {
+      print('plantsList is longer than 0');
+
       return Column(
         children: [
-          // Expanded(
-          //   flex: 1,
-          //   child: Container(
-          //     width: double.infinity,
-          //     decoration: BoxDecoration(
-          //       color: darkGreenColor,
-          //       borderRadius: BorderRadius.circular(20),
-          //       shape: BoxShape.rectangle,
-          //     ),
-          //     child: Center(
-          //       child: Text(
-          //         'DASHBOARD HERE',
-          //         style: TextStyle(
-          //           color: Colors.white,
-          //         ),
-          //       ),
-          //     ),
-          //   ),
-          // ),
+          _showDashboard(),
           Container(
             alignment: Alignment.centerLeft,
             padding: EdgeInsets.only(left: 14, top: 5),
@@ -363,17 +539,22 @@ class HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Expanded(
-            // flex: 1,
+            flex: 2,
             child: Scrollbar(
-              isAlwaysShown: true,
+              isAlwaysShown: false,
               controller: _scrollController,
               child: ListView.builder(
                 controller: _scrollController,
                 itemCount: plantsList.length,
                 itemBuilder: (BuildContext context, int index) {
                   // run functions before building the listview
+                  //
+                  // checking if its monday and the streak should be reseted
+                  checkWeekday(index);
+                  // checking wether goal was met and when user last watered the plant
                   checkStatus(index);
 
+                  print('plantsList.lenght: ${plantsList.length}');
                   // building it now ...
                   return Dismissible(
                     key: UniqueKey(),
@@ -480,22 +661,36 @@ class HomeScreenState extends State<HomeScreen> {
                                     ],
                                   ),
                                   onTap: () {
-                                    showModalBottomSheet(
-                                      isDismissible: true,
-                                      context: context,
-                                      builder: (_) {
-                                        return _buildEditPlantSheet(
-                                          plantsList[index].id,
-                                          plantsList[index].plantName,
-                                          plantsList[index].plantType,
-                                          plantsList[index].wateringFrequency,
-                                          plantsList[index].isWatered,
-                                          plantsList[index].streak,
-                                          plantsList[index].lastDayWatered,
-                                          plantsList[index].goalDone,
-                                          plantsList[index].isEnabled,
-                                        );
-                                      },
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) {
+                                          return EditPlantScreen(
+                                            plant: plantsList[index],
+                                            id: plantsList[index].id,
+                                            plantName:
+                                                plantsList[index].plantName,
+                                            plantType:
+                                                plantsList[index].plantType,
+                                            wateringFrequency: plantsList[index]
+                                                .wateringFrequency,
+                                            monday: plantsList[index].monday,
+                                            tuesday: plantsList[index].tuesday,
+                                            wednesday:
+                                                plantsList[index].wednesday,
+                                            thursday:
+                                                plantsList[index].thursday,
+                                            friday: plantsList[index].friday,
+                                            saturday:
+                                                plantsList[index].saturday,
+                                            sunday: plantsList[index].sunday,
+                                            isWatered:
+                                                plantsList[index].isWatered,
+                                            lastDayWatered: plantsList[index]
+                                                .lastDayWatered,
+                                            streak: plantsList[index].streak,
+                                          );
+                                        },
+                                      ),
                                     );
                                   },
                                 ),
@@ -542,17 +737,74 @@ class HomeScreenState extends State<HomeScreen> {
                                   value: plantsList[index].isWatered == false
                                       ? false
                                       : true,
-                                  onChanged: isEnabled
-                                      ? (bool newValue) {
-                                          // setState(() {
-                                          //   plantsList[index].isWatered = newValue;
-                                          // });
-                                          alterPlant(newValue, index);
+                                  onChanged: plantsList[index].streak ==
+                                          plantsList[index].wateringFrequency
+                                      ? null
+                                      : (bool newValue) {
+                                          setState(() {
+                                            plantsList[index].isWatered =
+                                                !plantsList[index].isWatered;
+                                          });
 
                                           print(newValue);
-                                          checkGoal(index);
-                                        }
-                                      : null,
+                                          print(plantsList[index].isWatered);
+
+                                          if (plantsList[index].isWatered ==
+                                              false) {
+                                            print('is watered is false');
+                                            plantsList[index].streak--;
+                                            plantsList[index].lastDayWatered =
+                                                null;
+                                            print(
+                                                'Streak: ${plantsList[index].streak}');
+                                          } else if (plantsList[index]
+                                                  .isWatered ==
+                                              true) {
+                                            print('is watered is true');
+                                            plantsList[index].streak++;
+
+                                            plantsList[index].lastDayWatered =
+                                                today;
+                                            print(
+                                                'streak: ${plantsList[index].streak}');
+                                          }
+                                          _updatePlant(
+                                            plantsList[index].id,
+                                            plantsList[index].plantName,
+                                            plantsList[index].plantType,
+                                            plantsList[index].wateringFrequency,
+                                            plantsList[index].monday,
+                                            plantsList[index].tuesday,
+                                            plantsList[index].wednesday,
+                                            plantsList[index].thursday,
+                                            plantsList[index].friday,
+                                            plantsList[index].saturday,
+                                            plantsList[index].sunday,
+                                            plantsList[index].isWatered,
+                                            plantsList[index].lastDayWatered,
+                                            plantsList[index].streak,
+                                          );
+                                          if (plantsList[index].streak ==
+                                              plantsList[index]
+                                                  .wateringFrequency) {
+                                            showDialog(
+                                              context: context,
+                                              builder: (_) {
+                                                return AlertDialog(
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            15),
+                                                  ),
+                                                  title:
+                                                      Text('Congratulations!'),
+                                                  content: Text(
+                                                      'You\'ve met your weekly goal. Try to repeat it next week!'),
+                                                );
+                                              },
+                                            );
+                                          }
+                                        },
                                 ),
                               ),
                             ],
@@ -564,6 +816,9 @@ class HomeScreenState extends State<HomeScreen> {
                 },
               ),
             ),
+          ),
+          SizedBox(
+            height: 60,
           ),
           // Expanded(
           //   flex: 1,
@@ -619,432 +874,6 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Widget _buildAddPlantSheet() {
-    return SingleChildScrollView(
-      controller: ScrollController(),
-      child: Container(
-        height: 600,
-        color: Colors.white,
-        padding: EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                'Plant name',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: darkGreenColor,
-                ),
-              ),
-              Theme(
-                data: ThemeData(),
-                child: TextFormField(
-                  decoration: InputDecoration(
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: darkGreenColor,
-                        width: 1.5,
-                      ),
-                    ),
-                    focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: lightGreenColor,
-                        width: 1.5,
-                      ),
-                    ),
-                    hintText: 'Name your plant',
-                  ),
-                  validator: (value) {
-                    if (value.isEmpty) {
-                      return 'Please enter a plant name';
-                    }
-                    return null;
-                  },
-                  onChanged: (String value) {
-                    setState(
-                      () {
-                        _plantName = value;
-                      },
-                    );
-                  },
-                ),
-              ),
-              SizedBox(
-                height: 10,
-              ),
-              Text(
-                'Plant type',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: darkGreenColor,
-                ),
-              ),
-              DropdownButtonFormField(
-                validator: (value) {
-                  if (value == null) {
-                    return 'Please choose a plant type';
-                  } else {
-                    return null;
-                  }
-                },
-                isExpanded: false,
-                icon: Icon(
-                  Icons.arrow_drop_down,
-                  color: darkGreenColor,
-                ),
-                decoration: InputDecoration(
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(
-                      color: darkGreenColor,
-                      width: 1.5,
-                    ),
-                  ),
-                  focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(
-                      color: lightGreenColor,
-                      width: 1.5,
-                    ),
-                  ),
-                  hintText: 'Select plant type',
-                  fillColor: Colors.white,
-                ),
-                items: plantTypes.map((plantType) {
-                  return DropdownMenuItem(
-                    value: plantType,
-                    child: Container(
-                      child: Text('$plantType'),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(
-                    () {
-                      _plantType = value;
-                    },
-                  );
-                },
-              ),
-              SizedBox(
-                height: 10,
-              ),
-              Text(
-                'Watering frequency',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: darkGreenColor,
-                ),
-              ),
-              Row(
-                children: <Widget>[
-                  SizedBox(
-                    width: 150,
-                    child: Theme(
-                      data: ThemeData(),
-                      child: TextFormField(
-                        decoration: InputDecoration(
-                          enabledBorder: UnderlineInputBorder(
-                            borderSide: BorderSide(
-                              color: darkGreenColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          focusedBorder: UnderlineInputBorder(
-                            borderSide: BorderSide(
-                              color: lightGreenColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          hintText: 'Enter a number',
-                        ),
-                        validator: (value) {
-                          if (value.isEmpty) {
-                            return 'Enter a valid number';
-                          } else if (int.parse(value) == 0) {
-                            return 'Enter a valid number';
-                          } else if (int.parse(value) > 7) {
-                            return 'Enter a smaller number';
-                          }
-                          return null;
-                        },
-                        onChanged: (String value) {
-                          setState(
-                            () {
-                              _wateringFrequency = int.parse(value);
-                            },
-                          );
-                        },
-                        keyboardType: TextInputType.number,
-                        inputFormatters: <TextInputFormatter>[
-                          LengthLimitingTextInputFormatter(1),
-                          WhitelistingTextInputFormatter.digitsOnly
-                        ], // Only numbers can be entered
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.all(10),
-                    child: SizedBox(
-                      width: 100,
-                      child: Text('x a week'),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(
-                height: 10,
-              ),
-              Container(
-                alignment: Alignment.bottomRight,
-                child: FlatButton(
-                  child: Text(
-                    'ADD PLANT',
-                    style: TextStyle(
-                        color: darkGreenColor,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold),
-                  ),
-                  onPressed: () {
-                    addPlant(
-                      _plantName,
-                      _plantType,
-                      _wateringFrequency,
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEditPlantSheet(
-      int _id,
-      String _plantName,
-      String _plantType,
-      int _wateringFrequency,
-      bool _isWatered,
-      int _streak,
-      String _lastDayWatered,
-      bool _goalDone,
-      bool _isEnabled) {
-    return SingleChildScrollView(
-      controller: ScrollController(),
-      child: Container(
-        height: 600,
-        color: Colors.white,
-        padding: EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                'Plant name',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: darkGreenColor,
-                ),
-              ),
-              Theme(
-                data: ThemeData(),
-                child: TextFormField(
-                  initialValue: _plantName,
-                  decoration: InputDecoration(
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: darkGreenColor,
-                        width: 1.5,
-                      ),
-                    ),
-                    focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: lightGreenColor,
-                        width: 1.5,
-                      ),
-                    ),
-                    hintText: 'Name your plant',
-                  ),
-                  validator: (value) {
-                    if (value.isEmpty) {
-                      return 'Please enter a plant name';
-                    }
-                    return null;
-                  },
-                  onChanged: (String value) {
-                    setState(
-                      () {
-                        _plantName = value;
-                      },
-                    );
-                  },
-                ),
-              ),
-              SizedBox(
-                height: 10,
-              ),
-              Text(
-                'Plant type',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: darkGreenColor,
-                ),
-              ),
-              DropdownButtonFormField(
-                validator: (value) {
-                  if (value == null) {
-                    return 'Please choose a plant type';
-                  } else {
-                    return null;
-                  }
-                },
-                isExpanded: false,
-                icon: Icon(
-                  Icons.arrow_drop_down,
-                  color: darkGreenColor,
-                ),
-                value: _plantType,
-                decoration: InputDecoration(
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(
-                      color: darkGreenColor,
-                      width: 1.5,
-                    ),
-                  ),
-                  focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(
-                      color: lightGreenColor,
-                      width: 1.5,
-                    ),
-                  ),
-                  fillColor: Colors.white,
-                ),
-                items: plantTypes.map((plantType) {
-                  return DropdownMenuItem(
-                    value: plantType,
-                    child: Container(
-                      child: Text('$plantType'),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(
-                    () {
-                      _plantType = value;
-                    },
-                  );
-                },
-              ),
-              SizedBox(
-                height: 10,
-              ),
-              Text(
-                'Watering frequency',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: darkGreenColor,
-                ),
-              ),
-              Row(
-                children: <Widget>[
-                  SizedBox(
-                    width: 150,
-                    child: Theme(
-                      data: ThemeData(),
-                      child: TextFormField(
-                        initialValue: _wateringFrequency.toString(),
-                        decoration: InputDecoration(
-                          enabledBorder: UnderlineInputBorder(
-                            borderSide: BorderSide(
-                              color: darkGreenColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          focusedBorder: UnderlineInputBorder(
-                            borderSide: BorderSide(
-                              color: lightGreenColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          hintText: 'Enter a number',
-                        ),
-                        validator: (value) {
-                          if (value.isEmpty) {
-                            return 'Enter a valid number';
-                          } else if (int.parse(value) == 0) {
-                            return 'Enter a valid number';
-                          } else if (int.parse(value) > 7) {
-                            return 'Enter a smaller number';
-                          }
-                          return null;
-                        },
-                        onChanged: (String value) {
-                          setState(
-                            () {
-                              _wateringFrequency = int.parse(value);
-                            },
-                          );
-                        },
-                        keyboardType: TextInputType.number,
-                        inputFormatters: <TextInputFormatter>[
-                          LengthLimitingTextInputFormatter(1),
-                          WhitelistingTextInputFormatter.digitsOnly
-                        ], // Only numbers can be entered
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.all(10),
-                    child: SizedBox(
-                      width: 100,
-                      child: Text('x a week'),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(
-                height: 10,
-              ),
-              Container(
-                alignment: Alignment.bottomRight,
-                child: FlatButton(
-                  child: Text(
-                    'EDIT PLANT',
-                    style: TextStyle(
-                        color: darkGreenColor,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold),
-                  ),
-                  onPressed: () {
-                    editPlant(
-                        _id,
-                        _plantName,
-                        _plantType,
-                        _wateringFrequency,
-                        _isWatered,
-                        _streak,
-                        _lastDayWatered,
-                        _goalDone,
-                        _isEnabled);
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildDrawer() {
     return Drawer(
       child: Column(
@@ -1065,9 +894,10 @@ class HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Container(
-            child: ListView(
-              shrinkWrap: true,
-              padding: EdgeInsets.all(26.0),
+            padding: EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: <Widget>[
                 Row(
                   children: [
@@ -1089,38 +919,114 @@ class HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-                // SizedBox(
-                //   height: 10,
-                // ),
-                // FlatButton.icon(
-                //     onPressed: () {
-                //       db.cleanDb();
-                //     },
-                //     icon: Icon(Icons.delete_forever),
-                //     label: Text('Delete all my plants')),
-                // SizedBox(
-                //   height: 10,
-                // ),
-                // Row(
-                //   children: <Widget>[
-                //     Text(
-                //       'Watered: ',
-                //       style: TextStyle(
-                //         fontWeight: FontWeight.bold,
-                //         color: darkGreenColor,
-                //         fontSize: 20,
-                //       ),
-                //     ),
-                //     Text(
-                //       '',
-                //       style: TextStyle(
-                //         fontWeight: FontWeight.bold,
-                //         color: Colors.black,
-                //         fontSize: 22,
-                //       ),
-                //     ),
-                //   ],
-                // ),
+                SizedBox(
+                  height: 10,
+                ),
+                FlatButton.icon(
+                  padding: EdgeInsets.all(0),
+                  icon: Icon(Icons.delete_forever),
+                  label: Text('Delete all my plants'),
+                  onPressed: () {
+                    if (plants.length > 0) {
+                      showDialog(
+                        barrierDismissible: false,
+                        context: context,
+                        builder: (_) {
+                          return AlertDialog(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            title: Text('Are you sure?'),
+                            content: Text('There is no turning back!'),
+                            actions: <Widget>[
+                              FlatButton(
+                                child: Text(
+                                  'CANCEL',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                onPressed: () {
+                                  setupList();
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                              FlatButton(
+                                child: Text(
+                                  'DELETE',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                onPressed: () {
+                                  db.deletePlants();
+                                  setupList();
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    } else {
+                      showDialog(
+                        context: context,
+                        builder: (_) {
+                          return AlertDialog(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            title: Text('Add plants!'),
+                            content:
+                                Text('You have no plants to delete, add some!'),
+                          );
+                        },
+                      );
+                    }
+                  },
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+                Text(
+                  'Notifications',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: darkGreenColor,
+                    fontSize: 20,
+                  ),
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'Allow notifications',
+                        style: TextStyle(
+                          fontWeight: FontWeight.normal,
+                          color: Colors.black,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Container(),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Switch(
+                        activeColor: darkGreenColor,
+                        value: true,
+                        onChanged: (value) {},
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -1129,80 +1035,64 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> addPlant(
-      String _plantName, String _plantType, int _wateringFrequency) async {
-    if (_formKey.currentState.validate()) {
-      _formKey.currentState.save();
-
-      print('name: $_plantName');
-      print('type: $_plantType');
-      print('num: $_wateringFrequency');
-      // print('is watered: ${plant.isWatered}');
-
-      await db.addPlant(
-        Plant(
-          plantName: _plantName,
-          plantType: _plantType,
-          wateringFrequency: _wateringFrequency,
-          isWatered: false,
-          goalDone: false,
-        ),
-      );
-      setupList();
-      Navigator.of(context).pop();
-    }
-  }
-
-  Future<void> editPlant(
-      int _id,
-      String _plantName,
-      String _plantType,
-      int _wateringFrequency,
-      bool _isWatered,
-      int _streak,
-      String _lastDayWatered,
-      bool _goalDone,
-      bool _isEnabled) async {
-    if (_formKey.currentState.validate()) {
-      _formKey.currentState.save();
-      print('id: $_id');
-      print('name: $_plantName');
-      print('type: $_plantType');
-      print('num: $_wateringFrequency');
-      print('is watered: $_isWatered');
-      print('streak: $_streak');
-      print('last day watered: $_lastDayWatered');
-      print('goal done: $_goalDone');
-
-      await db.updatePlant(
-        Plant(
-          id: _id,
-          plantName: _plantName,
-          plantType: _plantType,
-          wateringFrequency: _wateringFrequency,
-          isWatered: _isWatered,
-          streak: _streak,
-          lastDayWatered: _lastDayWatered,
-          goalDone: _goalDone,
-          isEnabled: _isEnabled,
-        ),
-      );
-      setupList();
-      Navigator.of(context).pop();
-    }
-  }
-
+  // delete plant
   void onDelete(int id) async {
     await db.removePlant(id);
     db.fetchAll().then((plantDb) => plants = plantDb);
     setState(() {});
   }
 
+// setup list
   void setupList() async {
     var _plants = await db.fetchAll();
 
     setState(() {
       plants = _plants;
     });
+  }
+
+  // update plant
+  Future<void> _updatePlant(
+    int _id,
+    String _plantName,
+    String _plantType,
+    int _wateringFrequency,
+    bool _monday,
+    bool _tuesday,
+    bool _wednesday,
+    bool _thursday,
+    bool _friday,
+    bool _saturday,
+    bool _sunday,
+    bool _isWatered,
+    String _lastDayWatered,
+    int _streak,
+  ) async {
+    print('''Edit plant(),
+    ID: $_id,
+    NAME: $_plantName,
+    TYPE: $_plantType,
+    FREQUENCY: $_wateringFrequency,
+    WEEKLY: $_monday, $_tuesday, $_wednesday, $_thursday, $_friday, $_saturday, $_sunday''');
+
+    await db.updatePlant(
+      Plant(
+        id: _id,
+        plantName: _plantName,
+        plantType: _plantType,
+        wateringFrequency: _wateringFrequency,
+        monday: _monday,
+        tuesday: _tuesday,
+        wednesday: _wednesday,
+        thursday: _thursday,
+        friday: _friday,
+        saturday: _saturday,
+        sunday: _sunday,
+        isWatered: _isWatered,
+        lastDayWatered: _lastDayWatered,
+        streak: _streak,
+      ),
+    );
+    setupList();
   }
 }

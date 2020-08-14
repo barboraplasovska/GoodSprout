@@ -38,18 +38,41 @@ class PlantDatabase {
   }
 
   void _onCreate(Database db, int version) {
+    // table plant
     db.execute('''
       CREATE TABLE plant(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         plant_name STRING,
         plant_type STRING,
         watering_frequency INTEGER,
+        monday INTEGER,
+        tuesday INTEGER,
+        wednesday INTEGER,
+        thursday INTEGER,
+        friday INTEGER,
+        saturday INTEGER,
+        sunday INTEGER,
+        events_id INTEGER,
         is_watered INTEGER,
-        streak INTEGER,
         last_day_watered STRING,
-        goal_done INTEGER,
-        is_enabled INTEGER)
+        streak INTEGER)
     ''');
+
+    // print('Table plant done');
+
+    // // table events
+    // db.execute('''
+    //   CREATE TABLE events(
+    //     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    //     is_watered INTEGER,
+    //     last_day_watered STRING,
+    //     streak INTEGER)
+    // ''');
+
+    // print('table events done');
+    // print(Events);
+
+    // //print('joined together');
 
     print("Database was created!");
   }
@@ -60,6 +83,16 @@ class PlantDatabase {
 
   Future<int> addPlant(Plant plant) async {
     var client = await db;
+    // CONSOLE CHECKS
+    print('''!!! DATABASE CHECK !!!
+    ID: ${plant.id},
+    NAME: ${plant.plantName},
+    TYPE: ${plant.plantType},
+    FREQUENCY: ${plant.wateringFrequency}
+    WEEKLY: ${plant.monday}, ${plant.tuesday}, ${plant.wednesday}, ${plant.thursday}, ${plant.friday}, ${plant.saturday}, ${plant.sunday},
+    IS WATERED: ${plant.isWatered},
+    LAST DAY WATERED: ${plant.lastDayWatered},
+    STREAK: ${plant.streak}''');
     return client.insert('plant', plant.toMapForDb(),
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
@@ -68,15 +101,6 @@ class PlantDatabase {
     var client = await db;
     final Future<List<Map<String, dynamic>>> futureMaps = client.query(
       'plant',
-      // columns: [
-      //   'id',
-      //   'plant_name',
-      //   'plant_type',
-      //   'watering_frequency',
-      //   'is_watered',
-      //   'streak',
-      //   'last_day_watered',
-      // ],
       where: 'id = ?',
       whereArgs: [id],
     );
@@ -109,11 +133,11 @@ class PlantDatabase {
     ID: ${newPlant.id},
     NAME: ${newPlant.plantName},
     TYPE: ${newPlant.plantType},
-    FREQUENCY: ${newPlant.wateringFrequency},
-    WATERED: ${newPlant.isWatered},
-    STREAK: ${newPlant.streak},
+    FREQUENCY: ${newPlant.wateringFrequency}
+    WEEKLY: ${newPlant.monday}, ${newPlant.tuesday}, ${newPlant.wednesday}, ${newPlant.thursday}, ${newPlant.friday}, ${newPlant.saturday}, ${newPlant.sunday},
+    IS WATERED: ${newPlant.isWatered},
     LAST DAY WATERED: ${newPlant.lastDayWatered},
-    GOAL DONE: ${newPlant.goalDone}''');
+    STREAK: ${newPlant.streak}''');
 
     return client.update('plant', newPlant.toMapForDb(),
         where: 'id = ?',
@@ -128,6 +152,11 @@ class PlantDatabase {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  Future<void> deletePlants() async {
+    var client = await db;
+    return client.delete('plant');
   }
 
   Future closeDb() async {
