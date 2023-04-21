@@ -281,7 +281,7 @@ class _EditPlantScreenState extends State<EditPlantScreen> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: RaisedButton(
+                        child: ElevatedButton(
                           color: widget.monday ? lightGreenColor : Colors.white,
                           elevation: 10,
                           shape: CircleBorder(
@@ -315,7 +315,7 @@ class _EditPlantScreenState extends State<EditPlantScreen> {
                         ),
                       ),
                       Expanded(
-                        child: RaisedButton(
+                        child: ElevatedButton(
                           color:
                               widget.tuesday ? lightGreenColor : Colors.white,
                           elevation: 10,
@@ -349,7 +349,7 @@ class _EditPlantScreenState extends State<EditPlantScreen> {
                         ),
                       ),
                       Expanded(
-                        child: RaisedButton(
+                        child: ElevatedButton(
                           color:
                               widget.wednesday ? lightGreenColor : Colors.white,
                           elevation: 10,
@@ -383,7 +383,7 @@ class _EditPlantScreenState extends State<EditPlantScreen> {
                         ),
                       ),
                       Expanded(
-                        child: RaisedButton(
+                        child: ElevatedButton(
                           color:
                               widget.thursday ? lightGreenColor : Colors.white,
                           elevation: 10,
@@ -417,7 +417,7 @@ class _EditPlantScreenState extends State<EditPlantScreen> {
                         ),
                       ),
                       Expanded(
-                        child: RaisedButton(
+                        child: ElevatedButton(
                           color: widget.friday ? lightGreenColor : Colors.white,
                           elevation: 10,
                           shape: CircleBorder(
@@ -450,7 +450,7 @@ class _EditPlantScreenState extends State<EditPlantScreen> {
                         ),
                       ),
                       Expanded(
-                        child: RaisedButton(
+                        child: ElevatedButton(
                           color:
                               widget.saturday ? lightGreenColor : Colors.white,
                           elevation: 10,
@@ -484,7 +484,7 @@ class _EditPlantScreenState extends State<EditPlantScreen> {
                         ),
                       ),
                       Expanded(
-                        child: RaisedButton(
+                        child: ElevatedButton(
                           color: widget.sunday ? lightGreenColor : Colors.white,
                           elevation: 10,
                           shape: CircleBorder(

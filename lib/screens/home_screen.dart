@@ -570,7 +570,7 @@ class HomeScreenState extends State<HomeScreen> {
                             ),
                             title: Text('Are you sure?'),
                             actions: <Widget>[
-                              FlatButton(
+                              TextButton(
                                 child: Text(
                                   'CANCEL',
                                   style: TextStyle(
@@ -582,7 +582,7 @@ class HomeScreenState extends State<HomeScreen> {
                                   Navigator.of(context).pop();
                                 },
                               ),
-                              FlatButton(
+                              TextButton(
                                 child: Text(
                                   'DELETE',
                                   style: TextStyle(
@@ -922,8 +922,8 @@ class HomeScreenState extends State<HomeScreen> {
                 SizedBox(
                   height: 10,
                 ),
-                FlatButton.icon(
-                  padding: EdgeInsets.all(0),
+                TextButton.icon(
+                //  padding: EdgeInsets.all(0),
                   icon: Icon(Icons.delete_forever),
                   label: Text('Delete all my plants'),
                   onPressed: () {
@@ -939,7 +939,7 @@ class HomeScreenState extends State<HomeScreen> {
                             title: Text('Are you sure?'),
                             content: Text('There is no turning back!'),
                             actions: <Widget>[
-                              FlatButton(
+                              TextButton(
                                 child: Text(
                                   'CANCEL',
                                   style: TextStyle(
@@ -951,7 +951,7 @@ class HomeScreenState extends State<HomeScreen> {
                                   Navigator.of(context).pop();
                                 },
                               ),
-                              FlatButton(
+                              TextButton(
                                 child: Text(
                                   'DELETE',
                                   style: TextStyle(

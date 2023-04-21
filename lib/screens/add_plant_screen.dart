@@ -274,11 +274,18 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: RaisedButton(
-                          color: _monday ? lightGreenColor : Colors.white,
-                          elevation: 10,
-                          shape: CircleBorder(
-                            side: BorderSide(color: Colors.white12),
+                        child: ElevatedButton(
+                           style: ElevatedButton.styleFrom(
+                            primary: _monday ? lightGreenColor : Colors.white,
+                            shape: MaterialStateProperty.all<CircleBorder>(
+                              CircleBorder(
+                                side: BorderSide(color: Colors.white12),
+                              )
+                            )
+                          ),
+                          //elevation: 10,
+                          //shape: CircleBorder(
+                          //  side: BorderSide(color: Colors.white12),
                           ),
                           padding: EdgeInsets.all(5),
                           onPressed: () {
@@ -310,9 +317,11 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                         ),
                       ),
                       Expanded(
-                        child: RaisedButton(
-                          color: _tuesday ? lightGreenColor : Colors.white,
-                          elevation: 10,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            primary: _tuesday ? lightGreenColor : Colors.white,
+                          ),
+                          //elevation: 10,
                           shape: CircleBorder(
                             side: BorderSide(color: Colors.white12),
                           ),
@@ -343,9 +352,11 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                         ),
                       ),
                       Expanded(
-                        child: RaisedButton(
-                          color: _wednesday ? lightGreenColor : Colors.white,
-                          elevation: 10,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            primary: _wednesday ? lightGreenColor : Colors.white,
+                          ),
+                          //elevation: 10,
                           shape: CircleBorder(
                             side: BorderSide(color: Colors.white12),
                           ),
@@ -376,9 +387,11 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                         ),
                       ),
                       Expanded(
-                        child: RaisedButton(
-                          color: _thursday ? lightGreenColor : Colors.white,
-                          elevation: 10,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            primary: _thursday ? lightGreenColor : Colors.white,
+                          ),
+                         //elevation: 10,
                           shape: CircleBorder(
                             side: BorderSide(color: Colors.white12),
                           ),
@@ -409,9 +422,11 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                         ),
                       ),
                       Expanded(
-                        child: RaisedButton(
-                          color: _friday ? lightGreenColor : Colors.white,
-                          elevation: 10,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            primary: _friday ? lightGreenColor : Colors.white,
+                          ),
+                          //elevation: 10,
                           shape: CircleBorder(
                             side: BorderSide(color: Colors.white12),
                           ),
@@ -442,9 +457,11 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                         ),
                       ),
                       Expanded(
-                        child: RaisedButton(
-                          color: _saturday ? lightGreenColor : Colors.white,
-                          elevation: 10,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            primary: _saturday ? lightGreenColor : Colors.white,
+                          ),
+                          //elevation: 10,
                           shape: CircleBorder(
                             side: BorderSide(color: Colors.white12),
                           ),
@@ -475,9 +492,11 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
                         ),
                       ),
                       Expanded(
-                        child: RaisedButton(
-                          color: _sunday ? lightGreenColor : Colors.white,
-                          elevation: 10,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            primary: _sunday ? lightGreenColor : Colors.white,
+                          ),
+                         // elevation: 10,
                           shape: CircleBorder(
                             side: BorderSide(color: Colors.white12),
                           ),
